@@ -18,8 +18,8 @@ PREFIX = "$"
 
 bot = commands.Bot(command_prefix=PREFIX)
 
-# catalogue = requests.get("http://93.6.41.243:8271/items").json()
-catalogue = requests.get("http://localhost:6969/items").json()
+catalogue = requests.get("http://93.6.41.243:8271/items").json()
+# catalogue = requests.get("http://localhost:6969/items").json()
 
 categories = requests.get("http://localhost:6969/categories").json()
 
