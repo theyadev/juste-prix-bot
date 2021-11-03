@@ -18,7 +18,11 @@ PREFIX = "$"
 
 bot = commands.Bot(command_prefix=PREFIX)
 
-catalogue = requests.get("http://93.6.41.243:8271/items").json()
+# catalogue = requests.get("http://93.6.41.243:8271/items").json()
+catalogue = requests.get("http://localhost:6969/items").json()
+
+categories = requests.get("http://localhost:6969/categories").json()
+
 
 active_games = {}
 
@@ -35,7 +39,7 @@ async def nextRound(ctx):
         return await stopGame(ctx, id)
 
     active_games[id]["curr_round"] += 1
-    active_games[id]["curr_item"] = random.choice(catalogue)
+    active_games[id]["curr_item"] = random.choice(active_games[id]["curr_catalogue"])
     active_games[id]["latest"] = 0
 
     message = await ctx.send(embed=generateEmbed(id))
@@ -92,15 +96,30 @@ def generateFinishEmbed(id):
 
 
 @bot.command()
-async def start(ctx: Context):
+async def start(ctx: Context, *args):
+    rounds = 5
+    category = None
+
+    for arg in args:
+        if arg.isnumeric() and int(arg) <= 30:
+            rounds = int(arg)
+        elif arg.lower() in categories:
+            category = arg.lower()
+
     active_games[ctx.guild.id] = {
         "game_mode": "Amazon",
         "curr_round": 0,
-        "rounds": 5,
+        "rounds": rounds,
+        "category": category,
         "players": [],
         "curr_item": {},
         "latest": 0,
         "message": None,
+        "curr_catalogue": list(
+            filter(lambda item: item["category"] == category, catalogue)
+        )
+        if category is not None
+        else catalogue,
     }
 
     await ctx.send("La partie commence !")
@@ -145,9 +164,11 @@ async def on_message(message: Message):
         latest = active_games[message.guild.id]["latest"]
 
         if item_price > latest and price <= latest:
+            await message.delete()
             return
 
         if item_price < latest and price >= latest:
+            await message.delete()
             return
 
         if price == item_price:
@@ -171,6 +192,15 @@ async def on_message(message: Message):
             embed=generateEmbed(message.guild.id)
         )
         await message.delete()
-
+bot.remove_command('help')
+@bot.command()
+async def help(ctx:Context):
+    embed = Embed(
+        title="Commandes de Vincent Lagaf",
+        description="$start [rounds] [category] : Démarre une partie de juste prix.",
+        color=Color.blurple()
+    )
+    await ctx.send(embed=embed)
+    
 
 bot.run(DISCORD_TOKEN)
